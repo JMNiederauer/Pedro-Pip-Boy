@@ -1,0 +1,448 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pip-Pedro — Trilha do Material (Visor Relógio Fallout)</title>
+<style>
+  :root{
+    --bg:#0a0f0a; --scan:#0f200f; --fg:#7CFFA5; --accent:#D5FFDF; --muted:#5dd98b;
+    --danger:#ff6b6b; --ok:#76ff7a; --panel:#0a140a; --border:#1c4a24;
+    --bezel:#0c150c; --screw:#223e28;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:radial-gradient(ellipse at center,var(--scan) 0%,#061006 70%) fixed;color:var(--fg);font-family:"Courier New",monospace}
+
+  /* ===== VISOR-RELÓGIO PIP-BOY ===== */
+  .pipwatch{
+    position:relative;
+    padding:12px;
+    background:linear-gradient(180deg,#0c160c,#061006 60%);
+    border-bottom:1px solid var(--border);
+    overflow:hidden;
+  }
+  .pipwatch-inner{
+    display:flex;align-items:center;gap:16px;flex-wrap:wrap;
+  }
+  .watch-bezel{
+    width:180px;height:180px;min-width:180px;border-radius:24px;
+    background:radial-gradient(circle at 50% 48%, #0d1a0f 0%, #0b160c 60%, #081208 100%);
+    border:2px solid #15321d; position:relative; box-shadow:inset 0 0 22px #0007, 0 0 18px #0006;
+  }
+  .watch-screen{
+    position:absolute; inset:12px; border-radius:12px; background:#071107; 
+    border:1px solid #11311b; overflow:hidden;
+  }
+  .scanlines::before{
+    content:""; position:absolute; inset:0; background:
+      repeating-linear-gradient(0deg, rgba(124,255,165,0.06), rgba(124,255,165,0.06) 1px, transparent 2px, transparent 5px);
+    mix-blend-mode:screen; pointer-events:none; animation:scan 6s linear infinite;
+  }
+  @keyframes scan{0%{transform:translateY(-10%)}50%{transform:translateY(10%)}100%{transform:translateY(-10%)}}
+  .watch-ui{position:absolute; inset:0; display:grid; grid-template-rows:1fr auto; padding:8px;}
+  .watch-time{display:grid; place-items:center; gap:2px}
+  .watch-hhmm{font-size:44px; letter-spacing:2px}
+  .watch-date{font-size:12px; color:var(--muted)}
+  .watch-bottom{display:flex; justify-content:space-between; align-items:center; font-size:12px; color:var(--muted)}
+  .battery{width:62px;height:10px;border:1px solid var(--border);border-radius:4px; position:relative}
+  .battery::after{content:""; position:absolute; right:-5px; top:2px; width:4px; height:6px; background:#11311b; border:1px solid var(--border); border-left:none; border-radius:0 2px 2px 0}
+  .battery .fill{height:100%; width:70%; background:linear-gradient(90deg,#26ff8a,#6bffb0);}
+
+  .screw{position:absolute; width:16px;height:16px;border-radius:50%; background:var(--screw); border:1px solid #152b1b; box-shadow:inset 0 0 4px #0008}
+  .screw::after{content:""; position:absolute; left:3px; right:3px; top:7px; height:2px; background:#0a1a10}
+  .s1{left:6px; top:6px} .s2{right:6px; top:6px} .s3{left:6px; bottom:6px} .s4{right:6px; bottom:6px}
+
+  .titlebar{display:flex;align-items:center;gap:12px; flex:1; min-width:220px}
+  .titlebar h1{font-size:18px;margin:0;letter-spacing:1px}
+  .titlebar .sub{font-size:12px;color:var(--muted)}
+  .top-actions{margin-left:auto;display:flex;gap:8px}
+
+  /* ===== LAYOUT PRINCIPAL ===== */
+  #wrap{max-width:1100px;margin:12px auto;padding:10px;display:grid;grid-template-columns:300px 1fr;gap:10px}
+  @media (max-width:900px){#wrap{grid-template-columns:1fr}}
+  .panel{border:1px solid var(--border);border-radius:10px;padding:12px;background:rgba(7,17,7,.5);box-shadow:inset 0 0 10px rgba(0,0,0,.5)}
+  .title{font-weight:bold;margin-bottom:8px;text-transform:uppercase;font-size:12px;color:var(--accent)}
+  .pip-row{display:flex;justify-content:space-between;align-items:center;margin:6px 0}
+  progress{width:100%;height:10px;appearance:none}
+  progress::-webkit-progress-bar{background:#0b150b;border:1px solid var(--border);border-radius:6px}
+  progress::-webkit-progress-value{background:linear-gradient(90deg,#26ff8a,#6bffb0)}
+  button{background:transparent;border:1px solid var(--border);color:var(--fg);padding:8px 12px;border-radius:8px;cursor:pointer}
+  button:hover{background:rgba(124,255,165,.12)}
+  button[disabled]{opacity:.5;cursor:not-allowed}
+  .grid{display:grid;gap:8px}
+  .cols3{grid-template-columns:repeat(3,1fr)}
+  .muted{color:var(--muted)} .danger{color:var(--danger)} .ok{color:var(--ok)}
+  .log{max-height:240px;overflow:auto;border:1px dashed var(--border);padding:8px;border-radius:8px;background:rgba(0,0,0,.2)}
+  .choice{display:block;text-align:left;width:100%}
+  .slot{display:flex;justify-content:space-between;gap:8px;align-items:center;border:1px dashed var(--border);padding:6px;border-radius:8px}
+  .mono{font-family:inherit}
+  .avatarRow{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  .av{width:46px;height:46px;border-radius:50%;border:2px solid var(--border);background:#051005;cursor:pointer}
+  .av.sel{outline:2px solid var(--fg)}
+  .objective{border:1px dashed var(--border);padding:8px;border-radius:8px;background:rgba(0,0,0,.15)}
+
+  /* ===== MAPA (scroll horizontal) ===== */
+  #mapWrap{border:1px dashed var(--border);border-radius:10px;padding:10px;background:rgba(0,0,0,.2)}
+  #map{display:flex;align-items:center;gap:8px;overflow:auto;padding-bottom:6px}
+  .node{display:grid;justify-items:center;gap:6px;min-width:84px}
+  .dot{width:28px;height:28px;border-radius:50%;border:2px solid var(--border);background:#0b150b;display:grid;place-items:center}
+  .dot span{width:16px;height:16px;border-radius:50%;background:#184e2a}
+  .node.done .dot span{background:#17d96a;box-shadow:0 0 10px #17d96a88}
+  .node.curr .dot{border-color:#7cffb0}
+  .node.curr .dot span{background:#7cffb0}
+  .node label{font-size:11px;text-align:center}
+  .arrow{width:40px;min-width:40px;height:2px;background:linear-gradient(90deg,#214a2a,#357d47);position:relative}
+  .arrow::after{content:""; position:absolute; right:-2px; top:-4px; border:6px solid transparent; border-left-color:#357d47}
+
+  /* ===== MODAL ===== */
+  .modal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.6);z-index:99}
+  .card{width:min(680px,92vw);background:#081108;border:1px solid var(--border);border-radius:12px;padding:14px}
+</style>
+</head>
+<body>
+  <!-- VISOR RELÓGIO -->
+  <div class="pipwatch">
+    <div class="pipwatch-inner">
+      <div class="watch-bezel">
+        <div class="screw s1"></div><div class="screw s2"></div><div class="screw s3"></div><div class="screw s4"></div>
+        <div class="watch-screen scanlines">
+          <div class="watch-ui">
+            <div class="watch-time">
+              <div id="watch-hhmm" class="watch-hhmm">--:--</div>
+              <div id="watch-date" class="watch-date">---</div>
+            </div>
+            <div class="watch-bottom">
+              <div>MODE: EDU</div>
+              <div class="battery"><div id="batFill" class="fill"></div></div>
+              <div id="watch-sec">-- s</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="titlebar">
+        <div>
+          <h1>📟 Pip-Pedro — Trilha do Material</h1>
+          <div class="sub">7 terminais • 2/3 acertos • Chefão final • Mapa com setas • Visor Fallout</div>
+        </div>
+      </div>
+      <div class="top-actions">
+        <button id="btnReset" class="small">Resetar progresso</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="wrap">
+    <!-- Esquerda -->
+    <section class="panel">
+      <div class="title">Status</div>
+      <div class="pip-row"><span>HP</span><span id="hpText">20/20</span></div>
+      <progress id="hpBar" value="20" max="20"></progress>
+      <div class="grid cols3" style="margin-top:8px">
+        <div><b>FOR</b> <span id="stat-for">4</span></div>
+        <div><b>INT</b> <span id="stat-int">6</span></div>
+        <div><b>AGI</b> <span id="stat-agi">5</span></div>
+      </div>
+
+      <div class="title" style="margin-top:12px">Companheiro (Avatar)</div>
+      <div class="avatarRow" id="avatarRow"></div>
+
+      <div class="title" style="margin-top:12px">Objetivo</div>
+      <div id="objective" class="objective small"></div>
+
+      <div class="title" style="margin-top:12px">Inventário</div>
+      <div id="inv" class="grid"></div>
+    </section>
+
+    <!-- Direita -->
+    <section class="panel">
+      <div class="title">Mapa da Trilha</div>
+      <div id="mapWrap">
+        <div id="map">
+          <div class="node" id="n-org"><div class="dot"><span></span></div><label>Org. da Vida</label></div>
+          <div class="arrow"></div>
+          <div class="node" id="n-tipos"><div class="dot"><span></span></div><label>Tipos de Célula</label></div>
+          <div class="arrow"></div>
+          <div class="node" id="n-memb"><div class="dot"><span></span></div><label>Membrana</label></div>
+          <div class="arrow"></div>
+          <div class="node" id="n-organelas"><div class="dot"><span></span></div><label>Organelas</label></div>
+          <div class="arrow"></div>
+          <div class="node" id="n-tec-base"><div class="dot"><span></span></div><label>Tecidos — Base</label></div>
+          <div class="arrow"></div>
+          <div class="node" id="n-pele"><div class="dot"><span></span></div><label>Pele & Epitélio</label></div>
+          <div class="arrow"></div>
+          <div class="node" id="n-micro"><div class="dot"><span></span></div><label>Microscopia</label></div>
+          <div class="arrow"></div>
+          <div class="node" id="n-boss"><div class="dot"><span></span></div><label>Prova</label></div>
+        </div>
+      </div>
+
+      <div class="title" style="margin-top:10px">Local</div>
+      <div id="locName"><b>Abrigo — Refúgio 6º Ano</b></div>
+      <div class="muted small" id="locDesc">Siga os terminais na ordem do material para abrir a Sala da Prova.</div>
+
+      <div class="title" style="margin-top:10px">Ações</div>
+      <div id="choices" class="grid"></div>
+
+      <div class="title" style="margin-top:10px">Registro</div>
+      <div id="log" class="log mono small"></div>
+    </section>
+  </div>
+
+  <!-- Modal Quiz -->
+  <div class="modal" id="quizModal" role="dialog" aria-modal="true">
+    <div class="card">
+      <div class="title">Terminal — Autenticação (2 de 3)</div>
+      <div id="qContext" class="small muted"></div>
+      <div id="qText" class="mono" style="margin:6px 0 8px"></div>
+      <div id="qAns" class="grid"></div>
+      <div id="qFeedback" class="small" style="margin-top:8px"></div>
+      <div class="small muted" id="qCounter"></div>
+      <div style="margin-top:10px;display:flex;gap:8px;justify-content:flex-end">
+        <button id="qClose">Fechar</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+/* ===== WebAudio SFX ===== */
+const AudioCtx = window.AudioContext || window.webkitAudioContext; let ACTX;
+function tone({f=440,d=0.08,t='sine',v=0.2,delay=0}){ setTimeout(()=>{ try{ ACTX=ACTX||new AudioCtx(); const o=ACTX.createOscillator(), g=ACTX.createGain(); o.type=t; o.frequency.value=f; g.gain.value=v; o.connect(g).connect(ACTX.destination); o.start(); g.gain.exponentialRampToValueAtTime(0.0001, ACTX.currentTime + d); o.stop(ACTX.currentTime + d);}catch{} }, delay);}
+const SFX = { click:()=>tone({f:880,d:.04,t:'square',v:.12}), ok:()=>{tone({f:760,d:.06});tone({f:980,d:.09,delay:90});}, bad:()=>{tone({f:200,d:.12});tone({f:150,d:.14,delay:120});}, step:()=>tone({f:320,d:.05,t:'square',v:.12}), heal:()=>tone({f:520,d:.08,t:'triangle'}), level:()=>{tone({f:440,d:.06});tone({f:660,d:.08,delay:100});tone({f:880,d:.1,delay:220});} };
+
+/* ===== Avatares (SVG inline) ===== */
+const AVATARS = [
+  {id:"dog",name:"Rottweiler",svg:`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 80 80'><rect width='80' height='80' rx='14' fill='#061006'/><circle cx='40' cy='40' r='22' fill='#1a1a1a' stroke='#ff9e3a' stroke-width='2'/><ellipse cx='40' cy='47' rx='10' ry='7' fill='#2a2a2a'/><circle cx='35' cy='45' r='2' fill='#000'/><circle cx='45' cy='45' r='2' fill='#000'/></svg>`},
+  {id:"capi",name:"Capivara",svg:`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 80 80'><rect width='80' height='80' rx='14' fill='#061006'/><ellipse cx='40' cy='42' rx='22' ry='20' fill='#8a6746' stroke='#5d3f28' stroke-width='2'/><circle cx='32' cy='38' r='3' fill='#111'/><circle cx='48' cy='38' r='3' fill='#111'/></svg>`},
+  {id:"coba",name:"Porco-da-Índia",svg:`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 80 80'><rect width='80' height='80' rx='14' fill='#061006'/><ellipse cx='40' cy='44' rx='20' ry='16' fill='#e7bda7' stroke='#c6967f' stroke-width='2'/><circle cx='30' cy='40' r='3' fill='#111'/><circle cx='50' cy='40' r='3' fill='#111'/></svg>`}
+];
+
+/* ===== PERGUNTAS (somente do material) ===== */
+const QUESTIONS = {
+  org: [
+    {context:"Corredor com o diagrama dos níveis de organização.", q:"Unidade básica da vida:", a:["tecido","órgão","célula","organismo"], ok:2},
+    {context:"Quadro com células formando estruturas maiores.", q:"Células com funções semelhantes formam:", a:["órgão","tecido","sistema","biosfera"], ok:1},
+    {context:"Sequência no painel do abrigo.", q:"Ordem correta: célula → tecido → órgão → sistema → …", a:["átomo","organismo","molécula","biosfera"], ok:1}
+  ],
+  tipos: [
+    {context:"Manual do setor: 'procariontes'.", q:"Procariontes se destacam pela:", a:["ausência de membrana plasmática","ausência de citoplasma","ausência de núcleo com membrana","ausência de material genético"], ok:2},
+    {context:"Painel ANIMAL x VEGETAL.", q:"Célula vegetal possui (e a animal não):", a:["lisossomos","mitocôndrias","cloroplastos e parede celular","ribossomos"], ok:2},
+    {context:"Etiqueta técnica.", q:"Ribossomos e parede celular, respectivamente:", a:["guardam DNA; produzem energia","fazem proteínas; proteção rígida externa","fazem ATP; impedem toda troca","só existem em animais"], ok:1}
+  ],
+  memb: [
+    {context:"Cartaz: 'fronteira da célula'.", q:"A membrana plasmática:", a:["contorna a célula e controla entradas/saídas","guarda todo o DNA","gera ATP","só existe em animais"], ok:0}
+  ],
+  organelas: [
+    {context:"Sala 'Núcleo de Comando'.", q:"Função do núcleo:", a:["ATP","armazenar DNA e controlar a célula","fotossíntese","digestão"], ok:1},
+    {context:"Esteira de proteínas.", q:"RER/REL:", a:["síntese de proteínas / produção de lipídios","fotossíntese / divisão","excreção / respiração","osmose / difusão"], ok:0},
+    {context:"Central de embalagens.", q:"Complexo Golgiense:", a:["secreta/embala proteínas para transporte","quebra moléculas no lisossomo","produz ATP","armazena água"], ok:0},
+    {context:"Setor de reciclagem.", q:"Lisossomos:", a:["digestão intracelular","síntese de lipídios","fotossíntese","transporte ativo"], ok:0},
+    {context:"Gerador do abrigo.", q:"Mitocôndrias:", a:["gerar energia para a célula","armazenar água","proteger contra UV","formar parede celular"], ok:0},
+    {context:"Oficina de fibras.", q:"Centríolos:", a:["formação de cílios e flagelos","produção de glicose","armazenamento de lipídios","digestão"], ok:0},
+    {context:"Jardim interno verde.", q:"Cloroplastos:", a:["respiração","fotossíntese","excreção","digestão"], ok:1},
+    {context:"Caixa d’água da estufa.", q:"Vacúolos (vegetais):", a:["contração","armazenamento (principalmente água)","produção de proteínas","excreção"], ok:1},
+    {context:"Muro rígido externo.", q:"Parede celular celulósica:", a:["protege o conteúdo celular","faz ATP","impede qualquer troca","não existe em vegetais"], ok:0},
+    {context:"Legenda de esquema.", q:"Membrana plasmática e carioteca:", a:["delimitam célula e núcleo, respectivamente","fazem proteínas","armazenam água","produzem energia"], ok:0}
+  ],
+  tec_base: [
+    {context:"Quadro 'tecidos = conjuntos celulares'.", q:"Tecidos são:", a:["conjuntos de células com função","apenas órgãos","apenas sistemas","apenas moléculas"], ok:0},
+    {context:"Painel dos 4 grupos.", q:"Grupos de tecidos animais:", a:["epitelial, conjuntivo, muscular, nervoso","epidérmico, ósseo, adiposo, nervoso","xilema, floema, colênquima, parênquima","meristemas, parênquimas, colênquimas"], ok:0},
+    {context:"Sala de logística.", q:"Tecido conjuntivo — funções incluem:", a:["conexão, sustentação, defesa, preenchimento, transporte e reserva","apenas condução de impulsos","apenas contração voluntária","apenas fotossíntese"], ok:0},
+    {context:"Cartaz técnico.", q:"No conjuntivo, exceto o cartilaginoso:", a:["é avascular","é vascularizado (tem vasos sanguíneos)","não possui matriz extracelular","é formado só por epiderme"], ok:1},
+    {context:"Legenda sobre matriz.", q:"Matriz extracelular é:", a:["proteínas + substâncias entre as células","apenas DNA celular","apenas água","apenas lipídios"], ok:0},
+    {context:"Cartaz do sangue.", q:"Componente do transporte no conjuntivo:", a:["sangue (gases/nutrientes/excretas)","epiderme","neurônio","músculo estriado"], ok:0}
+  ],
+  pele: [
+    {context:"Esquema de camadas.", q:"Ordem (da superfície para dentro) na pele:", a:["derme → epiderme → hipoderme","epiderme → derme → hipoderme","hipoderme → derme → epiderme","derme → hipoderme → epiderme"], ok:1},
+    {context:"Função de barreira.", q:"O epitélio/pele atua principalmente em:", a:["revestimento e proteção","fotossíntese","armazenar cálcio","apenas condução"], ok:0},
+    {context:"Nota sobre células pigmentares.", q:"Melanócitos na epiderme:", a:["produzem melanina (proteção UV)","fazem contração voluntária","conduzem impulsos","armazenam água"], ok:0},
+    {context:"Cartaz da derme.", q:"Derme — características:", a:["resistência/elasticidade; folículos, glândulas, vasos e nervos no colágeno","camada mais externa e espessa contra desidratação","camada de gordura/isolamento","apenas matriz óssea"], ok:0},
+    {context:"Aviso da hipoderme.", q:"Hipoderme:", a:["última camada; conserva calor e absorve choques","barreira externa contra invasores","camada rígida com cálcio","tecido nervoso"], ok:0}
+  ],
+  micro: [
+    {context:"Sala histórica.", q:"Robert Hooke observou cortiça usando:", a:["microscópio composto (duas lentes)","telescópio","raios X","lupa sem lente"], ok:0},
+    {context:"Placa comparativa.", q:"Microscópios modernos:", a:["óptico e eletrônico","infravermelho e gamma","apenas óptico","apenas eletrônico"], ok:0},
+    {context:"Observação histórica.", q:"Na cortiça, Hooke viu principalmente:", a:["os compartimentos/‘células’ vazias","o DNA das células","cloroplastos vivos","mitocôndrias em movimento"], ok:0}
+  ]
+};
+
+/* ===== Ordem dos 7 terminais ===== */
+const TERMINALS = [
+  {key:'org',       label:"Usar Terminal (Organização da Vida)",      success:"Organização da Vida autenticada! → Tipos de Célula"},
+  {key:'tipos',     label:"Usar Terminal (Tipos de Célula)",           success:"Tipos de Célula autenticado! → Membrana"},
+  {key:'memb',      label:"Usar Terminal (Membrana)",                   success:"Membrana autenticada! → Organelas"},
+  {key:'organelas', label:"Usar Terminal (Organelas)",                  success:"Organelas autenticadas! → Tecidos — Base"},
+  {key:'tec_base',  label:"Usar Terminal (Tecidos — Base)",             success:"Tecidos — Base autenticado! → Pele & Epitélio"},
+  {key:'pele',      label:"Usar Terminal (Pele & Epitélio)",            success:"Pele & Epitélio autenticado! → Microscopia"},
+  {key:'micro',     label:"Usar Terminal (Microscopia)",                success:"Microscopia autenticada! → Sala da Prova"}
+];
+
+/* ===== Estado ===== */
+const state = {
+  hp:20,hpMax:20,stats:{FOR:4,INT:6,AGI:5},
+  inv:[{id:"stim",name:"Stimpack",qty:2,desc:"Cura 8 HP."}],
+  avatar:"dog", score:0,
+  passed:{org:false, tipos:false, memb:false, organelas:false, tec_base:false, pele:false, micro:false},
+  bossUnlocked:false,
+  loc:"vault"
+};
+
+/* ===== UI refs ===== */
+const hpText=document.getElementById('hpText'); const hpBar=document.getElementById('hpBar');
+const statFor=document.getElementById('stat-for'); const statInt=document.getElementById('stat-int'); const statAgi=document.getElementById('stat-agi');
+const invEl=document.getElementById('inv'); const avatarRow=document.getElementById('avatarRow');
+const locName=document.getElementById('locName'); const locDesc=document.getElementById('locDesc'); const choices=document.getElementById('choices'); const logEl=document.getElementById('log');
+const objective=document.getElementById('objective'); const btnReset=document.getElementById('btnReset');
+
+/* ===== Helpers / Save ===== */
+function renderStatus(){ hpText.textContent=`${state.hp}/${state.hpMax}`; hpBar.max=state.hpMax; hpBar.value=state.hp; statFor.textContent=state.stats.FOR; statInt.textContent=state.stats.INT; statAgi.textContent=state.stats.AGI; }
+function log(t){ logEl.innerHTML += `• ${t}<br>`; logEl.scrollTop = logEl.scrollHeight; }
+function currentStep(){ for(let i=0;i<TERMINALS.length;i++){ if(!state.passed[TERMINALS[i].key]) return i; } return TERMINALS.length; }
+function labelOf(i){ return ["Organização da Vida","Tipos de Célula","Membrana","Organelas","Tecidos — Base","Pele & Epitélio","Microscopia"][i] || ""; }
+function renderObjective(){ const idx=currentStep(); objective.textContent = (idx<TERMINALS.length)? `Cap.${idx+1} — Autentique o Terminal de ${labelOf(idx)} (acertar 2 de 3).` : "Final — Sala da Prova liberada. Enfrente o Professor-Chefão!"; }
+function renderInv(){ invEl.innerHTML=""; state.inv.forEach(it=>{ const d=document.createElement('div'); d.className="slot"; d.innerHTML=`<div><b>${it.name}</b> <span class="muted small">x${it.qty}</span><div class="small muted">${it.desc}</div></div>`; const b=document.createElement('button'); b.textContent="Usar"; b.onclick=()=>{ if(it.id==="stim" && it.qty>0){ it.qty--; state.hp=Math.min(state.hpMax,state.hp+8); renderStatus(); renderInv(); SFX.heal(); log("Usou Stimpack (+8 HP)."); save(); } }; d.appendChild(b); invEl.appendChild(d); }); }
+function renderAvatars(){ avatarRow.innerHTML=""; AVATARS.forEach(av=>{ const img=document.createElement('div'); img.className="av"; img.innerHTML=av.svg; if(state.avatar===av.id) img.classList.add('sel'); img.title=av.name; img.onclick=()=>{ state.avatar=av.id; SFX.click(); renderAvatars(); log(`Companheiro: ${av.name}`); save(); }; avatarRow.appendChild(img); }); }
+function save(){ try{ localStorage.setItem("pipPedroSaveV6", JSON.stringify(state)); }catch{} }
+function load(){ try{ const s=JSON.parse(localStorage.getItem("pipPedroSaveV6")||"null"); if(s){ Object.assign(state,s); } }catch{} }
+
+/* ===== Mapa ===== */
+function renderMap(){
+  const ids = ['org','tipos','memb','organelas','tec_base','pele','micro','boss'];
+  const domIds = ['n-org','n-tipos','n-memb','n-organelas','n-tec-base','n-pele','n-micro','n-boss'];
+  const idx = currentStep();
+  ids.forEach((k,i)=>{
+    const el = document.getElementById(domIds[i]);
+    el.classList.remove('done','curr');
+    if(k==='boss'){ if(state.bossUnlocked) el.classList.add('done'); }
+    else if(state.passed[k]) el.classList.add('done');
+    if(i===idx || (idx===TERMINALS.length && k==='boss')) el.classList.add('curr');
+  });
+}
+
+/* ===== Locais ===== */
+const LOCS = {
+  vault:{ name:"Abrigo — Refúgio 6º Ano", desc:"A trilha começa no Terminal de Organização da Vida.", actions:[ {label:"Ir ao Terminal 1 (Org. da Vida)",go:"org"} ] },
+  org:{ name:"Área 1 — Organização da Vida", desc:"Diagramas do escopo da vida cobrem a parede.", actions:[ {terminal:'org'} ] },
+  tipos:{ name:"Área 2 — Tipos de Célula", desc:"Procariontes x eucariontes; animal x vegetal.", actions:[ {terminal:'tipos'} ] },
+  memb:{ name:"Área 3 — Membrana", desc:"Membrana plasmática (definição e função).", actions:[ {terminal:'memb'} ] },
+  organelas:{ name:"Área 4 — Organelas", desc:"Núcleo, ribossomos, RE, Golgi, lisossomos, mitocôndrias, centríolos, cloroplastos, vacúolos, parede.", actions:[ {terminal:'organelas'} ] },
+  tec_base:{ name:"Área 5 — Tecidos (Base)", desc:"Definições, grupos, conjuntivo (sangue, matriz, vasos).", actions:[ {terminal:'tec_base'} ] },
+  pele:{ name:"Área 6 — Pele & Epitélio", desc:"Epiderme, derme, hipoderme; melanócitos e barreira.", actions:[ {terminal:'pele'} ] },
+  micro:{ name:"Área 7 — Microscopia", desc:"Hooke; microscópios óptico e eletrônico.", actions:[ {terminal:'micro'} ] },
+  boss:{ name:"Sala da Prova — Professor-Chefão", desc:"“Hora de mostrar tudo que aprendeu, Pedro!”", actions:[ {label:"Enfrentar Chefão",fight:()=>startBoss()} ] }
+};
+
+function goto(key){
+  SFX.step(); state.loc=key; save();
+  const L = LOCS[key]; locName.innerHTML=`<b>${L.name}</b>`; locDesc.textContent=L.desc; choices.innerHTML="";
+  L.actions.forEach(a=>{
+    if(a.terminal){
+      const term = TERMINALS.find(t=>t.key===a.terminal);
+      const btn = document.createElement('button'); btn.className="choice";
+      if(state.passed[term.key]){ btn.textContent = "✔ Terminal autenticado"; btn.disabled = true; choices.appendChild(btn); const nx=nextOf(term.key); if(nx) addNext(nx); else if(state.bossUnlocked) addBoss(); }
+      else { btn.textContent = term.label; btn.onclick = ()=>startTerminal(term.key); choices.appendChild(btn); }
+    } else {
+      const b=document.createElement('button'); b.className="choice"; b.textContent=a.label; b.onclick=()=>{ if(a.go) goto(a.go); else if(a.fight) a.fight(); }; choices.appendChild(b);
+    }
+  });
+  if(state.bossUnlocked && key!=="boss"){ addBoss(); }
+  renderObjective(); renderMap();
+  function addNext(nxKey){ const b=document.createElement('button'); b.className="choice"; const nxIdx=TERMINALS.findIndex(t=>t.key===nxKey); b.textContent=`→ Ir ao Terminal ${nxIdx+1} (${labelOf(nxIdx)})`; b.onclick=()=>goto(nxKey); choices.appendChild(b); }
+  function addBoss(){ const g=document.createElement('button'); g.className="choice"; g.textContent="→ Ir à Sala da Prova (Final)"; g.onclick=()=>goto("boss"); choices.appendChild(g); }
+}
+function nextOf(key){ const i=TERMINALS.findIndex(t=>t.key===key); return (i>=0 && i<TERMINALS.length-1)? TERMINALS[i+1].key : null; }
+
+/* ===== Terminal: 2 de 3 acertos ===== */
+const quizModal=document.getElementById('quizModal'); const qText=document.getElementById('qText'); const qAns=document.getElementById('qAns'); const qFeedback=document.getElementById('qFeedback'); const qContext=document.getElementById('qContext'); const qCounter=document.getElementById('qCounter'); document.getElementById('qClose').onclick=()=>{ quizModal.style.display='none'; };
+
+function startTerminal(key){
+  const pool = QUESTIONS[key].slice();
+  shuffle(pool);
+  const picks = pool.slice(0, Math.min(3, pool.length));
+  let idx=0, correct=0;
+
+  function updateCounter(){ qCounter.textContent = `Progresso: ${correct} acertos / ${idx} perguntas (precisa de 2 acertos)`; }
+
+  function ask(){
+    if(correct>=2){ return finish(); }
+    if(idx>=picks.length){
+      if(correct>=2) return finish();
+      qFeedback.innerHTML = `<span class='danger'>Você fez ${correct}/${picks.length}. Falhou. Tente novamente.</span>`;
+      setTimeout(()=>{ quizModal.style.display='none'; }, 600);
+      return;
+    }
+    const item = picks[idx];
+    qContext.textContent=item.context; qText.textContent="Pergunta: "+item.q; qAns.innerHTML=""; qFeedback.textContent=""; updateCounter();
+    item.a.forEach((opt,i)=>{
+      const b=document.createElement('button'); b.textContent=opt;
+      b.onclick=()=>{
+        if(i===item.ok){ correct++; SFX.ok(); qFeedback.innerHTML="<span class='ok'>✔ Correto!</span>"; }
+        else{ state.hp=Math.max(1,state.hp-2); renderStatus(); save(); SFX.bad(); qFeedback.innerHTML="<span class='danger'>✖ Errado (-2 HP)</span>"; }
+        idx++; setTimeout(ask, 350);
+      };
+      qAns.appendChild(b);
+    });
+  }
+
+  function finish(){
+    state.passed[key]=true; save();
+    const term = TERMINALS.find(t=>t.key===key);
+    log(`<b>${term.success}</b>`); SFX.level();
+    if(Object.values(state.passed).every(Boolean)){ state.bossUnlocked=true; save(); log("<b>TODOS os terminais autenticados!</b> Sala da Prova liberada."); }
+    setTimeout(()=>{ quizModal.style.display='none'; goto(nextOf(key) || "boss"); }, 450);
+  }
+
+  quizModal.style.display='flex';
+  ask();
+}
+
+/* ===== Boss fight (final) ===== */
+function startBoss(){
+  const boss = {name:"Professor-Chefão", hp:30, atk:5, acc:0.7};
+  log("<b>Combate iniciado!</b>");
+  choices.innerHTML="";
+  const btnAtk=mkChoice("Atacar",()=>{ const hit=Math.random()<(0.7+state.stats.AGI*0.02); if(hit){ let dmg=3+Math.floor(state.stats.FOR/2); const bonus = Math.floor(Object.values(state.passed).filter(Boolean).length/3); dmg += bonus; boss.hp=Math.max(0,boss.hp-dmg); log(`Acertou! Dano ${dmg}.`); SFX.ok(); } else log("Você errou o ataque."); enemy(); });
+  const btnStim=mkChoice("Usar Stimpack",()=>{ const it=state.inv.find(x=>x.id==="stim"); if(it&&it.qty>0){ it.qty--; state.hp=Math.min(state.hpMax,state.hp+8); SFX.heal(); renderInv(); renderStatus(); log("Usou Stimpack (+8 HP)."); save(); } else { log("Sem Stimpack."); SFX.bad(); } enemy(); });
+  const btnHack=mkChoice("Hacking (INT)",()=>{ const bonus = Object.values(state.passed).filter(Boolean).length * 0.05; const chance=0.45+(state.stats.INT*0.05)+bonus; if(Math.random()<chance){ const dmg=4+Math.round(bonus*10)/2; boss.hp=Math.max(0,boss.hp-dmg); log(`<span class="ok">Hack bem-sucedido!</span> Dano ${dmg}.`); SFX.ok(); } else { log(`<span class="danger">Hack falhou.</span>`); SFX.bad(); } enemy(); });
+  choices.append(btnAtk,btnStim,btnHack);
+
+  function mkChoice(label,fn){ const b=document.createElement('button'); b.className="choice"; b.textContent=label; b.onclick=fn; return b; }
+  function redraw(){ locDesc.innerHTML=`<b>${boss.name}</b> — HP ${boss.hp} • Pedro — HP ${state.hp}`; renderMap(); }
+  function win(){ log("<b class='ok'>Vitória!</b> Prova dominada. Missão cumprida!"); choices.innerHTML=""; const back=mkChoice("Reiniciar trilha",()=>{ localStorage.removeItem("pipPedroSaveV6"); location.reload(); }); choices.append(back); SFX.level(); }
+  function gameover(){ log("<b class='danger'>Game Over…</b>"); choices.innerHTML=""; const retry=mkChoice("Tentar de novo (Abrigo)",()=>{ state.hp=state.hpMax; renderStatus(); save(); goto("vault"); }); choices.append(retry); }
+  function enemy(){
+    redraw();
+    if(boss.hp<=0){ win(); return; }
+    setTimeout(()=>{ const ac=boss.acc - state.stats.AGI*0.02; if(Math.random()<ac){ let dmg=boss.atk - Math.floor(state.stats.FOR/4); dmg=Math.max(2,dmg); state.hp=Math.max(0,state.hp-dmg); renderStatus(); save(); log(`<span class="danger">${boss.name} acertou! -${dmg} HP.</span>`); } else log(`${boss.name} errou.`); if(state.hp<=0){ gameover(); } },300);
+  }
+  redraw();
+}
+
+/* ===== util ===== */
+function addItem(id,qty){ let it=state.inv.find(x=>x.id===id); if(!it){ it={id:"stim",name:"Stimpack",qty:0,desc:"Cura 8 HP."}; state.inv.push(it); } it.qty+=qty; renderInv(); save(); }
+function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } }
+
+/* ===== RELÓGIO (local do navegador) ===== */
+function pad(n){return (n<10?'0':'')+n;}
+function updateWatch(){
+  const now = new Date();
+  const hh = pad(now.getHours()), mm = pad(now.getMinutes()), ss = pad(now.getSeconds());
+  const days = ["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"];
+  const months = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
+  document.getElementById('watch-hhmm').textContent = `${hh}:${mm}`;
+  document.getElementById('watch-sec').textContent = `${ss} s`;
+  document.getElementById('watch-date').textContent = `${days[now.getDay()]} • ${pad(now.getDate())} ${months[now.getMonth()]} ${now.getFullYear()}`;
+  // bateria fake varia suavemente
+  const bat = 50 + 40*Math.sin(now.getMinutes()/60*Math.PI*2);
+  document.getElementById('batFill').style.width = `${Math.max(8,Math.min(98,bat))}%`;
+}
+setInterval(updateWatch, 1000); updateWatch();
+
+/* ===== Inicialização ===== */
+function renderAll(){ renderStatus(); renderInv(); renderAvatars(); renderObjective(); goto(state.loc); }
+btnReset.onclick = ()=>{ if(confirm("Apagar progresso salvo?")){ localStorage.removeItem("pipPedroSaveV6"); location.reload(); } };
+load(); renderAll(); renderMap();
+log("Bem-vindo, Pedro. Toque em qualquer botão para habilitar o áudio do Pip-Boy.");
+</script>
+</body>
+</html>
+
